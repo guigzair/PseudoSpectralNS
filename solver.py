@@ -67,10 +67,10 @@ params = torch.nn.ParameterDict(params)
 N         = 400     # Spatial resolution
 t         = 0       # current time of the simulation
 tEnd      = 1       # time at which simulation ends
-dt        = 0.0002   # timestep
+dt        = 0.01   # timestep
 tOut      = 0.01    # draw frequency
 nu        = 2e-7   # viscosity
-n_nu      = 4
+n_nu      = 2
 mu        = 0.1   # viscosity
 n_mu      = 0
 
@@ -105,17 +105,18 @@ def initField(Amp = 1e-6):
 
 
 def forcing(eps = 0.1 ):
-    forcing_wavenumber = 14.0 * 2 * np.pi/L  # the forcing wavenumber, `k_f`, for a spectrum that is a ring in wavenumber space
+    forcing_wavenumber = 25.0 * 2 * np.pi/L  # the forcing wavenumber, `k_f`, for a spectrum that is a ring in wavenumber space
     forcing_bandwidth  = 1.5  * 2 * np.pi/L  # the width of the forcing spectrum, `δ_f`
 
     K = np.sqrt(kSq)
     forcing_spectrum = np.exp(-(K - forcing_wavenumber)**2 / (2 * forcing_bandwidth**2))
+    forcing_spectrum[kSq == 0] = 0
     eps_0 = np.sum(np.abs(forcing_spectrum)**2) / (L**2)
 
-    forcing_spectrum = forcing_spectrum * eps/eps_0 
+    forcing_spectrum = forcing_spectrum * eps/eps_0
 
     rand_val = np.random.rand(*kx.shape)
-    F_hat = np.sqrt(forcing_spectrum) * np.exp(1j * rand_val) / np.sqrt(dt)
+    F_hat = np.sqrt(forcing_spectrum) * np.exp(1j * 2 * np.pi * rand_val) / np.sqrt(dt)
     return F_hat
 
 
@@ -149,9 +150,9 @@ def time_step(psi_hat, dt):
 
     return psi_hat
 
-
+np.random.seed(1234)
 psi_hat = initField()
-for _ in range(100):
+for _ in range(1000):
     psi_hat = time_step(psi_hat, dt)
 
 psi = np.real(np.fft.ifftn(psi_hat ))
