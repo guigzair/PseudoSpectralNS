@@ -104,18 +104,37 @@ def initField(Amp = 1e-6):
     return psi_hat
 
 
+def forcing(eps = 0.1 ):
+    forcing_wavenumber = 14.0 * 2 * np.pi/L  # the forcing wavenumber, `k_f`, for a spectrum that is a ring in wavenumber space
+    forcing_bandwidth  = 1.5  * 2 * np.pi/L  # the width of the forcing spectrum, `δ_f`
+
+    K = np.sqrt(kSq)
+    forcing_spectrum = np.exp(-(K - forcing_wavenumber)**2 / (2 * forcing_bandwidth**2))
+    eps_0 = np.sum(np.abs(forcing_spectrum)**2) / (L**2)
+
+    forcing_spectrum = forcing_spectrum * eps/eps_0 
+
+    rand_val = np.random.rand(*kx.shape)
+    F_hat = np.sqrt(forcing_spectrum) * np.exp(1j * rand_val) / np.sqrt(dt)
+    return F_hat
+
+
+
 def Linear():
     L_hat = - nu * kSq ** n_nu 
     L_hat = L_hat - mu 
     return L_hat
 
 def NonLinear(psi_hat):
+    # forcing
+    F_hat = forcing(eps = 0.1)
+
     u = np.real(np.fft.ifftn(-1j * ky * psi_hat))
     v = np.real(np.fft.ifftn(1j * kx * psi_hat))
     zeta = np.real(np.fft.ifftn( kSq * psi_hat))
 
     NL_hat = 1j * kx * np.fft.fftn( u * zeta ) + 1j * ky * np.fft.fftn( v * zeta )
-    NL_hat = kSq_inv * NL_hat
+    NL_hat = kSq_inv * (NL_hat - F_hat)
     return NL_hat
 
 def time_step(psi_hat, dt):
@@ -132,7 +151,7 @@ def time_step(psi_hat, dt):
 
 
 psi_hat = initField()
-for _ in range(10):
+for _ in range(100):
     psi_hat = time_step(psi_hat, dt)
 
 psi = np.real(np.fft.ifftn(psi_hat ))
